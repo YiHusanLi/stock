@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>台股起漲預測系統</title>
+    <style>
+        body {
+            font-family: Arial, "Microsoft JhengHei", sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            margin-bottom: 16px;
+        }
+        .toolbar {
+            margin-bottom: 16px;
+        }
+        .status {
+            margin-bottom: 16px;
+            color: #444;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: auto;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            font-size: 14px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        .score-high {
+            font-weight: bold;
+        }
+        .trigger {
+            text-align: left;
+            white-space: normal;
+            min-width: 260px;
+        }
+        .number {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+<h1>今日前 10 名可能起漲股票</h1>
+
+<div class="toolbar">
+    <button onclick="loadData()">重新載入</button>
+    <button onclick="syncData()">執行 TWSE 同步</button>
+</div>
+
+<div id="status" class="status">資料載入中...</div>
+
+<table>
+    <thead>
+    <tr>
+        <th>股票代號</th>
+        <th>股票名稱</th>
+        <th>日期</th>
+        <th>開盤價</th>
+        <th>最高價</th>
+        <th>最低價</th>
+        <th>收盤價</th>
+        <th>成交量</th>
+        <th>成交金額</th>
+        <th>MA5</th>
+        <th>MA20</th>
+        <th>MA60</th>
+        <th>最佳進場</th>
+        <th>停利點</th>
+        <th>停損點</th>
+        <th>外資買賣超</th>
+        <th>投信買賣超</th>
+        <th>自營商買賣超</th>
+        <th>本益比</th>
+        <th>EPS</th>
+        <th>分數</th>
+        <th>預測機率(%)</th>
+        <th>買進訊號日期</th>
+        <th>觸發條件</th>
+        <th>回測勝率</th>
+    </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+</table>
+
+<script>
+    function fmt(value) {
+        if (value === null || value === undefined || value === "") {
+            return "-";
+        }
+        return value;
+    }
+
+    function fmtNumber(value) {
+        if (value === null || value === undefined || value === "") {
+            return "-";
+        }
+        return Number(value).toLocaleString();
+    }
+
+    function fmtDecimal(value) {
+        if (value === null || value === undefined || value === "") {
+            return "-";
+        }
+        return Number(value).toFixed(2);
+    }
+
+    async function loadData() {
+        const status = document.getElementById("status");
+        const tbody = document.getElementById("tableBody");
+
+        status.innerText = "資料載入中...";
+        tbody.innerHTML = "";
+
+        try {
+            const response = await fetch('/api/stocks/top');
+            const data = await response.json();
+
+            if (!Array.isArray(data) || data.length === 0) {
+                status.innerText = "目前沒有可顯示資料，請先執行同步。";
+                return;
+            }
+
+            data.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${fmt(item.stockCode)}</td>
+                    <td>${fmt(item.stockName)}</td>
+                    <td>${fmt(item.tradeDate)}</td>
+                    <td class="number">${fmtDecimal(item.openPrice)}</td>
+                    <td class="number">${fmtDecimal(item.highPrice)}</td>
+                    <td class="number">${fmtDecimal(item.lowPrice)}</td>
+                    <td class="number">${fmtDecimal(item.closePrice)}</td>
+                    <td class="number">${fmtNumber(item.volume)}</td>
+                    <td class="number">${fmtNumber(item.turnoverAmount)}</td>
+                    <td class="number">${fmtDecimal(item.ma5)}</td>
+                    <td class="number">${fmtDecimal(item.ma20)}</td>
+                    <td class="number">${fmtDecimal(item.ma60)}</td>
+                    <td class="number">${fmtDecimal(item.bestEntryPrice)}</td>
+                    <td class="number">${fmtDecimal(item.takeProfitPrice)}</td>
+                    <td class="number">${fmtDecimal(item.stopLossPrice)}</td>
+                    <td class="number">${fmtNumber(item.foreignNetBuy)}</td>
+                    <td class="number">${fmtNumber(item.trustNetBuy)}</td>
+                    <td class="number">${fmtNumber(item.dealerNetBuy)}</td>
+                    <td class="number">${fmtDecimal(item.peRatio)}</td>
+                    <td class="number">${fmtDecimal(item.eps)}</td>
+                    <td class="number score-high">${fmtDecimal(item.predictionScore)}</td>
+                    <td class="number">${fmtDecimal(item.predictionProbability)}</td>
+                    <td>${fmt(item.buySignalDate)}</td>
+                    <td class="trigger">${fmt(item.triggerConditions)}</td>
+                    <td class="number">${fmt(item.backtestWinRate)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            status.innerText = `載入完成，共 ${data.length} 筆。`;
+        } catch (e) {
+            console.error(e);
+            status.innerText = "資料載入失敗：" + e;
+        }
+    }
+
+    async function syncData() {
+        const status = document.getElementById("status");
+        status.innerText = "同步中...";
+
+        try {
+            const response = await fetch('/admin/twse/sync');
+            const result = await response.json();
+            console.log(result);
+
+            if (result.success === false) {
+                status.innerText = "同步失敗：" + (result.message || "未知錯誤");
+                return;
+            }
+
+            status.innerText = "同步完成，重新載入資料中...";
+            await loadData();
+        } catch (e) {
+            console.error(e);
+            status.innerText = "同步失敗：" + e;
+        }
+    }
+
+    loadData();
+</script>
+</body>
+</html>
