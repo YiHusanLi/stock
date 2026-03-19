@@ -23,10 +23,11 @@
 <div class="panel">
     <label for="tradeDate">日期</label>
     <input type="date" id="tradeDate">
-    <button onclick="importDaily()">1. 匯入 TWSE 日線</button>
-    <button onclick="calculateIndicator()">2. 計算指標</button>
-    <button onclick="scanSignal()">3. 掃描訊號</button>
-    <button onclick="loadSignals()">4. 查詢訊號</button>
+    <button onclick="importBasic()">1. 匯入 TWSE 基本資料</button>
+    <button onclick="importDaily()">2. 匯入 TWSE 日線</button>
+    <button onclick="calculateIndicator()">3. 計算指標</button>
+    <button onclick="scanSignal()">4. 掃描訊號</button>
+    <button onclick="loadSignals()">5. 查詢訊號</button>
     <div id="status">尚未執行。</div>
 </div>
 
@@ -71,6 +72,11 @@
     async function importDaily() {
         const data = await postJson('/api/import/twse/daily', {tradeDate: tradeDateInput.value});
         setStatus('匯入完成，筆數：' + data.data);
+    }
+
+    async function importBasic() {
+        const data = await postJson('/api/import/twse/basic', {});
+        setStatus('基本資料匯入完成，筆數：' + data.data);
     }
 
     async function calculateIndicator() {

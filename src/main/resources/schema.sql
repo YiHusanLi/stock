@@ -1,3 +1,17 @@
+CREATE TABLE IF NOT EXISTS stock_basic (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    stock_code VARCHAR(20) NOT NULL,
+    stock_name VARCHAR(100) NOT NULL,
+    market_type VARCHAR(20),
+    industry_type VARCHAR(100),
+    isin_code VARCHAR(20),
+    listing_date DATE,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_stock_basic_code (stock_code),
+    KEY idx_stock_basic_market_type (market_type),
+    KEY idx_stock_basic_industry_type (industry_type)
+);
+
 CREATE TABLE IF NOT EXISTS stock_price_daily (
     id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     stock_code VARCHAR(20) NOT NULL,
@@ -80,4 +94,21 @@ CREATE TABLE IF NOT EXISTS strategy_backtest_result (
     UNIQUE KEY uk_strategy_backtest_strategy_stock_date (strategy_code, stock_code, signal_date),
     KEY idx_strategy_backtest_signal_date (signal_date),
     KEY idx_strategy_backtest_strategy_date (strategy_code, signal_date)
+);
+
+CREATE TABLE IF NOT EXISTS import_batch (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    batch_date DATE NOT NULL,
+    source_type VARCHAR(50) NOT NULL,
+    api_path VARCHAR(100) NOT NULL,
+    import_status VARCHAR(20) NOT NULL,
+    total_rows INT NOT NULL DEFAULT 0,
+    success_rows INT NOT NULL DEFAULT 0,
+    fail_rows INT NOT NULL DEFAULT 0,
+    error_message VARCHAR(2000),
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_import_batch_batch_date (batch_date),
+    KEY idx_import_batch_source_type (source_type),
+    KEY idx_import_batch_status (import_status)
 );

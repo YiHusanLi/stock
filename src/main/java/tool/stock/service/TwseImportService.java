@@ -1,15 +1,15 @@
 package tool.stock.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import tool.stock.entity.ImportBatch;
+import tool.stock.entity.StockBasic;
 import tool.stock.entity.StockPriceDaily;
+import tool.stock.repository.ImportBatchRepository;
+import tool.stock.repository.StockBasicRepository;
 import tool.stock.repository.StockPriceDailyRepository;
 
 import java.math.BigDecimal;
@@ -25,36 +25,59 @@ public class TwseImportService {
 
     private static final Logger log = LoggerFactory.getLogger(TwseImportService.class);
 
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
+    private final TwseApiClient twseApiClient;
+    private final StockBasicRepository stockBasicRepository;
     private final StockPriceDailyRepository stockPriceDailyRepository;
+    private final ImportBatchRepository importBatchRepository;
 
-    @Value("${app.twse.base-url}")
-    private String twseBaseUrl;
-
-    public TwseImportService(RestTemplate restTemplate,
-                             ObjectMapper objectMapper,
-                             StockPriceDailyRepository stockPriceDailyRepository) {
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
+    public TwseImportService(TwseApiClient twseApiClient,
+                             StockBasicRepository stockBasicRepository,
+                             StockPriceDailyRepository stockPriceDailyRepository,
+                             ImportBatchRepository importBatchRepository) {
+        this.twseApiClient = twseApiClient;
+        this.stockBasicRepository = stockBasicRepository;
         this.stockPriceDailyRepository = stockPriceDailyRepository;
+        this.importBatchRepository = importBatchRepository;
+    }
+
+    @Transactional
+    public int importBasicData() {
+        String apiPath = "/opendata/t187ap03_L";
+        ImportBatch batch = createBatch("STOCK_BASIC", apiPath);
+        try {
+            JsonNode root = twseApiClient.getArray(apiPath);
+            List<StockBasic> entities = new ArrayList<>();
+            for (JsonNode row : root) {
+                String stockCode = readText(row, "公司代號", "stock_code", "Code");
+                String stockName = readText(row, "公司簡稱", "公司名稱", "stock_name", "Name");
+                if (isBlank(stockCode) || isBlank(stockName)) {
+                    continue;
+                }
+
+                StockBasic entity = stockBasicRepository.findByStockCode(stockCode).orElseGet(StockBasic::new);
+                entity.setStockCode(stockCode.trim());
+                entity.setStockName(stockName.trim());
+                entity.setMarketType(readText(row, "市場別", "市場別代號", "market_type"));
+                entity.setIndustryType(readText(row, "產業別", "industry_type"));
+                entity.setIsinCode(readText(row, "國際證券辨識號碼", "ISIN", "isin_code"));
+                entity.setListingDate(parseDate(readText(row, "上市日", "上市日期", "listing_date")));
+                entities.add(entity);
+            }
+            stockBasicRepository.saveAll(entities);
+            completeBatch(batch, root.size(), entities.size(), Math.max(root.size() - entities.size(), 0), null);
+            return entities.size();
+        } catch (Exception e) {
+            failBatch(batch, e);
+            throw e;
+        }
     }
 
     @Transactional
     public int importDailyPrices(LocalDate tradeDate) {
-        String url = twseBaseUrl + "/exchangeReport/STOCK_DAY_ALL";
-        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        String body = response.getBody();
-        if (body == null || body.isBlank()) {
-            throw new IllegalStateException("TWSE API 回傳空白內容");
-        }
-
+        String apiPath = "/exchangeReport/STOCK_DAY_ALL";
+        ImportBatch batch = createBatch("STOCK_DAY_ALL", apiPath);
         try {
-            JsonNode root = objectMapper.readTree(body);
-            if (!root.isArray()) {
-                throw new IllegalStateException("TWSE API 回傳格式不是陣列");
-            }
-
+            JsonNode root = twseApiClient.getArray(apiPath);
             List<StockPriceDaily> entities = new ArrayList<>();
             for (JsonNode row : root) {
                 String stockCode = readText(row, "Code", "證券代號", "code");
@@ -82,11 +105,40 @@ public class TwseImportService {
                 entities.add(entity);
             }
             stockPriceDailyRepository.saveAll(entities);
+            completeBatch(batch, root.size(), entities.size(), Math.max(root.size() - entities.size(), 0), null);
             log.info("TWSE 日線匯入完成，tradeDate={}, count={}", tradeDate, entities.size());
             return entities.size();
         } catch (Exception e) {
+            failBatch(batch, e);
             throw new IllegalStateException("TWSE 日線匯入失敗", e);
         }
+    }
+
+    private ImportBatch createBatch(String sourceType, String apiPath) {
+        ImportBatch batch = new ImportBatch();
+        batch.setBatchDate(LocalDate.now());
+        batch.setSourceType(sourceType);
+        batch.setApiPath(apiPath);
+        batch.setImportStatus("RUNNING");
+        batch.setTotalRows(0);
+        batch.setSuccessRows(0);
+        batch.setFailRows(0);
+        return importBatchRepository.save(batch);
+    }
+
+    private void completeBatch(ImportBatch batch, int totalRows, int successRows, int failRows, String errorMessage) {
+        batch.setImportStatus(failRows > 0 ? "PARTIAL_SUCCESS" : "SUCCESS");
+        batch.setTotalRows(totalRows);
+        batch.setSuccessRows(successRows);
+        batch.setFailRows(failRows);
+        batch.setErrorMessage(errorMessage);
+        importBatchRepository.save(batch);
+    }
+
+    private void failBatch(ImportBatch batch, Exception e) {
+        batch.setImportStatus("FAILED");
+        batch.setErrorMessage(left(e.getMessage(), 2000));
+        importBatchRepository.save(batch);
     }
 
     private String readText(JsonNode node, String... keys) {
@@ -126,5 +178,27 @@ public class TwseImportService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private LocalDate parseDate(String value) {
+        if (isBlank(value)) {
+            return null;
+        }
+        String normalized = value.replace("/", "").replace("-", "").trim();
+        if (!normalized.matches("\\d{8}")) {
+            return null;
+        }
+        return LocalDate.of(
+                Integer.parseInt(normalized.substring(0, 4)),
+                Integer.parseInt(normalized.substring(4, 6)),
+                Integer.parseInt(normalized.substring(6, 8))
+        );
+    }
+
+    private String left(String value, int max) {
+        if (value == null) {
+            return null;
+        }
+        return value.length() <= max ? value : value.substring(0, max);
     }
 }

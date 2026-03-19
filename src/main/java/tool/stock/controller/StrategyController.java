@@ -43,6 +43,11 @@ public class StrategyController {
         this.backtestService = backtestService;
     }
 
+    @PostMapping("/import/twse/basic")
+    public ApiResponse<Integer> importBasic() {
+        return ApiResponse.success(twseImportService.importBasicData());
+    }
+
     @PostMapping("/import/twse/daily")
     public ApiResponse<Integer> importDaily(@RequestBody TwseDailyImportRequest request) {
         return ApiResponse.success(twseImportService.importDailyPrices(request.getTradeDate()));
