@@ -16,7 +16,7 @@ import tool.stock.v8.entity.StrategyBacktestResult;
 import tool.stock.v8.service.BacktestService;
 import tool.stock.v8.service.IndicatorCalculateService;
 import tool.stock.v8.service.StrategyScanService;
-import tool.stock.v8.service.V8TwseImportService;
+import tool.stock.v8.service.TwseImportService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,12 +28,12 @@ import java.util.List;
 @RequestMapping("/api")
 public class StrategyController {
 
-    private final V8TwseImportService twseImportService;
+    private final TwseImportService twseImportService;
     private final IndicatorCalculateService indicatorCalculateService;
     private final StrategyScanService strategyScanService;
     private final BacktestService backtestService;
 
-    public StrategyController(V8TwseImportService twseImportService,
+    public StrategyController(TwseImportService twseImportService,
                               IndicatorCalculateService indicatorCalculateService,
                               StrategyScanService strategyScanService,
                               BacktestService backtestService) {
