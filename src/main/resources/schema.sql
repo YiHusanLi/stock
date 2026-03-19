@@ -1,0 +1,83 @@
+CREATE TABLE IF NOT EXISTS stock_price_daily (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    stock_code VARCHAR(20) NOT NULL,
+    stock_name VARCHAR(100) NOT NULL,
+    trade_date DATE NOT NULL,
+    open_price DECIMAL(12,4) NOT NULL,
+    high_price DECIMAL(12,4) NOT NULL,
+    low_price DECIMAL(12,4) NOT NULL,
+    close_price DECIMAL(12,4) NOT NULL,
+    volume BIGINT NOT NULL,
+    turnover DECIMAL(18,2) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_stock_price_daily_code_date (stock_code, trade_date),
+    KEY idx_stock_price_daily_trade_date (trade_date),
+    KEY idx_stock_price_daily_code_trade_date (stock_code, trade_date)
+);
+
+CREATE TABLE IF NOT EXISTS stock_indicator_daily (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    stock_code VARCHAR(20) NOT NULL,
+    trade_date DATE NOT NULL,
+    ma5 DECIMAL(12,4),
+    ma10 DECIMAL(12,4),
+    ma20 DECIMAL(12,4),
+    ma60 DECIMAL(12,4),
+    avg_vol5 DECIMAL(18,4),
+    avg_vol20 DECIMAL(18,4),
+    pct_change DECIMAL(10,4),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_stock_indicator_daily_code_date (stock_code, trade_date),
+    KEY idx_stock_indicator_daily_trade_date (trade_date),
+    KEY idx_stock_indicator_daily_code_trade_date (stock_code, trade_date)
+);
+
+CREATE TABLE IF NOT EXISTS strategy_signal (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    strategy_code VARCHAR(50) NOT NULL,
+    stock_code VARCHAR(20) NOT NULL,
+    stock_name VARCHAR(100) NOT NULL,
+    trade_date DATE NOT NULL,
+    signal_price DECIMAL(12,4) NOT NULL,
+    pct_change DECIMAL(10,4),
+    volume BIGINT,
+    ma5 DECIMAL(12,4),
+    ma10 DECIMAL(12,4),
+    ma20 DECIMAL(12,4),
+    squeeze_burst_flag TINYINT(1) NOT NULL DEFAULT 0,
+    multi_ma_break_flag TINYINT(1) NOT NULL DEFAULT 0,
+    trend_break_flag TINYINT(1) NOT NULL DEFAULT 0,
+    trend_slope DECIMAL(12,6),
+    trendline_value DECIMAL(12,4),
+    remark VARCHAR(500),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_strategy_signal_code_date_stock (strategy_code, stock_code, trade_date),
+    KEY idx_strategy_signal_trade_date (trade_date),
+    KEY idx_strategy_signal_strategy_date (strategy_code, trade_date)
+);
+
+CREATE TABLE IF NOT EXISTS strategy_backtest_result (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    strategy_code VARCHAR(50) NOT NULL,
+    stock_code VARCHAR(20) NOT NULL,
+    stock_name VARCHAR(100) NOT NULL,
+    signal_date DATE NOT NULL,
+    entry_price DECIMAL(12,4) NOT NULL,
+    next_day_close DECIMAL(12,4),
+    day3_close DECIMAL(12,4),
+    day5_close DECIMAL(12,4),
+    return_1d DECIMAL(12,6),
+    return_3d DECIMAL(12,6),
+    return_5d DECIMAL(12,6),
+    hit_1d INT NOT NULL DEFAULT 0,
+    hit_3d INT NOT NULL DEFAULT 0,
+    hit_5d INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_strategy_backtest_strategy_stock_date (strategy_code, stock_code, signal_date),
+    KEY idx_strategy_backtest_signal_date (signal_date),
+    KEY idx_strategy_backtest_strategy_date (strategy_code, signal_date)
+);
