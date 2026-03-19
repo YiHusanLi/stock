@@ -7,7 +7,7 @@ import tool.stock.v8sniper.dto.TrendBreakResult;
 import tool.stock.v8sniper.entity.StockDailyQuoteEntity;
 import tool.stock.v8sniper.entity.StockIndicatorDailyEntity;
 import tool.stock.v8sniper.repository.StockDailyQuoteRepository;
-import tool.stock.v8sniper.repository.StockIndicatorDailyRepository;
+import tool.stock.v8sniper.repository.V8StockIndicatorDailyRepository;
 import tool.stock.v8sniper.util.MathUtil;
 
 import java.math.BigDecimal;
@@ -22,9 +22,9 @@ import java.util.stream.Collectors;
 @Service
 public class IndicatorService {
     private final StockDailyQuoteRepository quoteRepository;
-    private final StockIndicatorDailyRepository indicatorRepository;
+    private final V8StockIndicatorDailyRepository indicatorRepository;
     private final V8Properties properties;
-    public IndicatorService(StockDailyQuoteRepository quoteRepository, StockIndicatorDailyRepository indicatorRepository, V8Properties properties) {
+    public IndicatorService(StockDailyQuoteRepository quoteRepository, V8StockIndicatorDailyRepository indicatorRepository, V8Properties properties) {
         this.quoteRepository = quoteRepository; this.indicatorRepository = indicatorRepository; this.properties = properties;
     }
 

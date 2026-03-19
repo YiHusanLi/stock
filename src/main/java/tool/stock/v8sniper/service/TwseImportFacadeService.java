@@ -12,7 +12,7 @@ import tool.stock.v8sniper.entity.StockBasicEntity;
 import tool.stock.v8sniper.entity.StockChipDailyEntity;
 import tool.stock.v8sniper.entity.StockDailyQuoteEntity;
 import tool.stock.v8sniper.entity.StockValuationDailyEntity;
-import tool.stock.v8sniper.repository.StockBasicRepository;
+import tool.stock.v8sniper.repository.V8StockBasicRepository;
 import tool.stock.v8sniper.repository.StockChipDailyRepository;
 import tool.stock.v8sniper.repository.StockDailyQuoteRepository;
 import tool.stock.v8sniper.repository.StockValuationDailyRepository;
@@ -32,7 +32,7 @@ public class TwseImportFacadeService {
     private final FileStorageService fileStorageService;
     private final ImportBatchService importBatchService;
     private final ObjectMapper objectMapper;
-    private final StockBasicRepository stockBasicRepository;
+    private final V8StockBasicRepository stockBasicRepository;
     private final StockDailyQuoteRepository quoteRepository;
     private final StockValuationDailyRepository valuationRepository;
     private final StockChipDailyRepository chipRepository;
@@ -40,7 +40,7 @@ public class TwseImportFacadeService {
     private final V8Properties properties;
 
     public TwseImportFacadeService(TwseOpenApiClient apiClient, FileStorageService fileStorageService, ImportBatchService importBatchService,
-                                   ObjectMapper objectMapper, StockBasicRepository stockBasicRepository,
+                                   ObjectMapper objectMapper, V8StockBasicRepository stockBasicRepository,
                                    StockDailyQuoteRepository quoteRepository, StockValuationDailyRepository valuationRepository,
                                    StockChipDailyRepository chipRepository, JdbcTemplate jdbcTemplate, V8Properties properties) {
         this.apiClient = apiClient; this.fileStorageService = fileStorageService; this.importBatchService = importBatchService; this.objectMapper = objectMapper;

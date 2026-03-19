@@ -6,6 +6,6 @@ import tool.stock.v8sniper.entity.StockIndicatorDailyEntity;
 import java.time.LocalDate;
 import java.util.Optional;
 
-public interface StockIndicatorDailyRepository extends JpaRepository<StockIndicatorDailyEntity, Long> {
+public interface V8StockIndicatorDailyRepository extends JpaRepository<StockIndicatorDailyEntity, Long> {
     Optional<StockIndicatorDailyEntity> findByTradeDateAndStockCode(LocalDate tradeDate, String stockCode);
 }

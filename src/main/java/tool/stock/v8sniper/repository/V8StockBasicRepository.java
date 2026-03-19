@@ -5,6 +5,6 @@ import tool.stock.v8sniper.entity.StockBasicEntity;
 
 import java.util.Optional;
 
-public interface StockBasicRepository extends JpaRepository<StockBasicEntity, Long> {
+public interface V8StockBasicRepository extends JpaRepository<StockBasicEntity, Long> {
     Optional<StockBasicEntity> findByStockCode(String stockCode);
 }

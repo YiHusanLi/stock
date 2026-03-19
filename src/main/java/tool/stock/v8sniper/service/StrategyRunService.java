@@ -10,9 +10,9 @@ import tool.stock.v8sniper.dto.StrategyResultBundle;
 import tool.stock.v8sniper.entity.StockBasicEntity;
 import tool.stock.v8sniper.entity.StockDailyQuoteEntity;
 import tool.stock.v8sniper.entity.StockIndicatorDailyEntity;
-import tool.stock.v8sniper.repository.StockBasicRepository;
+import tool.stock.v8sniper.repository.V8StockBasicRepository;
 import tool.stock.v8sniper.repository.StockDailyQuoteRepository;
-import tool.stock.v8sniper.repository.StockIndicatorDailyRepository;
+import tool.stock.v8sniper.repository.V8StockIndicatorDailyRepository;
 import tool.stock.v8sniper.repository.StrategyPickDetailRepository;
 import tool.stock.v8sniper.repository.StrategyPickResultRepository;
 import tool.stock.v8sniper.strategy.StrategyEngine;
@@ -28,8 +28,8 @@ public class StrategyRunService {
     private final IndicatorService indicatorService;
     private final StrategyEngine strategyEngine;
     private final StockDailyQuoteRepository quoteRepository;
-    private final StockIndicatorDailyRepository indicatorRepository;
-    private final StockBasicRepository basicRepository;
+    private final V8StockIndicatorDailyRepository indicatorRepository;
+    private final V8StockBasicRepository basicRepository;
     private final StrategyPickResultRepository resultRepository;
     private final StrategyPickDetailRepository detailRepository;
     private final StrategyQueryService queryService;
@@ -37,7 +37,7 @@ public class StrategyRunService {
     private final V8Properties properties;
 
     public StrategyRunService(IndicatorService indicatorService, StrategyEngine strategyEngine, StockDailyQuoteRepository quoteRepository,
-                              StockIndicatorDailyRepository indicatorRepository, StockBasicRepository basicRepository,
+                              V8StockIndicatorDailyRepository indicatorRepository, V8StockBasicRepository basicRepository,
                               StrategyPickResultRepository resultRepository, StrategyPickDetailRepository detailRepository,
                               StrategyQueryService queryService, FileStorageService fileStorageService, V8Properties properties) {
         this.indicatorService = indicatorService; this.strategyEngine = strategyEngine; this.quoteRepository = quoteRepository;
