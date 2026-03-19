@@ -1,13 +1,16 @@
-package tool.stock.controller;
+package tool.stock.v8.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
+/**
+ * 簡單首頁。
+ */
 @Controller
-public class HomeController {
+public class PageController {
 
     @GetMapping("/")
-    public String home() {
-        return "index"; // 對應 templates/index.html
+    public String index() {
+        return "index";
     }
 }
