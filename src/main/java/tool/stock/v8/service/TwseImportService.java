@@ -21,7 +21,7 @@ import java.util.List;
  * 匯入 TWSE 日線資料。
  * 欄位 mapping 集中在這個 service，後續若 TWSE 欄位改名只要改這裡。
  */
-@Service
+@Service("v8TwseImportService")
 public class TwseImportService {
 
     private static final Logger log = LoggerFactory.getLogger(TwseImportService.class);
