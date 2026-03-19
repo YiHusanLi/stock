@@ -2,59 +2,33 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>台股起漲預測系統</title>
+    <title>V8_BREAKOUT 台股 / ETF 起漲選股系統</title>
     <style>
-        body {
-            font-family: Arial, "Microsoft JhengHei", sans-serif;
-            margin: 20px;
-        }
-        h1 {
-            margin-bottom: 16px;
-        }
-        .toolbar {
-            margin-bottom: 16px;
-        }
-        .status {
-            margin-bottom: 16px;
-            color: #444;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            table-layout: auto;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            font-size: 14px;
-            text-align: center;
-            white-space: nowrap;
-        }
-        th {
-            background-color: #f5f5f5;
-        }
-        .score-high {
-            font-weight: bold;
-        }
-        .trigger {
-            text-align: left;
-            white-space: normal;
-            min-width: 260px;
-        }
-        .number {
-            text-align: right;
-        }
+        body { font-family: Arial, "Microsoft JhengHei", sans-serif; margin: 20px; }
+        h1 { margin-bottom: 8px; }
+        .panel { margin-bottom: 16px; padding: 12px; border: 1px solid #ccc; border-radius: 6px; }
+        label { margin-right: 8px; }
+        input, button { padding: 6px 10px; margin-right: 8px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+        th, td { border: 1px solid #bbb; padding: 8px; text-align: center; font-size: 14px; }
+        th { background: #f3f3f3; }
+        .left { text-align: left; }
+        #status { color: #333; margin-top: 8px; }
     </style>
 </head>
 <body>
-<h1>今日前 10 名可能起漲股票</h1>
+<h1>V8_BREAKOUT 台股 / ETF 起漲選股系統</h1>
+<p>流程建議：先匯入日線 → 再計算指標 → 再掃描指定日期訊號 → 再做回測。</p>
 
-<div class="toolbar">
-    <button onclick="loadData()">重新載入</button>
-    <button onclick="syncData()">執行 TWSE 同步</button>
+<div class="panel">
+    <label for="tradeDate">日期</label>
+    <input type="date" id="tradeDate">
+    <button onclick="importDaily()">1. 匯入 TWSE 日線</button>
+    <button onclick="calculateIndicator()">2. 計算指標</button>
+    <button onclick="scanSignal()">3. 掃描訊號</button>
+    <button onclick="loadSignals()">4. 查詢訊號</button>
+    <div id="status">尚未執行。</div>
 </div>
-
-<div id="status" class="status">資料載入中...</div>
 
 <table>
     <thead>
@@ -62,133 +36,95 @@
         <th>股票代號</th>
         <th>股票名稱</th>
         <th>日期</th>
-        <th>開盤價</th>
-        <th>最高價</th>
-        <th>最低價</th>
         <th>收盤價</th>
+        <th>漲幅%</th>
         <th>成交量</th>
-        <th>成交金額</th>
         <th>MA5</th>
+        <th>MA10</th>
         <th>MA20</th>
-        <th>MA60</th>
-        <th>最佳進場</th>
-        <th>停利點</th>
-        <th>停損點</th>
-        <th>外資買賣超</th>
-        <th>投信買賣超</th>
-        <th>自營商買賣超</th>
-        <th>本益比</th>
-        <th>EPS</th>
-        <th>分數</th>
-        <th>預測機率(%)</th>
-        <th>買進訊號日期</th>
-        <th>觸發條件</th>
-        <th>回測勝率</th>
+        <th>是否量縮後爆量</th>
+        <th>是否一線穿三線</th>
+        <th>是否突破下降趨勢</th>
+        <th class="left">備註</th>
     </tr>
     </thead>
-    <tbody id="tableBody"></tbody>
+    <tbody id="resultBody"></tbody>
 </table>
 
 <script>
+    const tradeDateInput = document.getElementById('tradeDate');
+    tradeDateInput.value = new Date().toISOString().slice(0, 10);
+
+    function setStatus(message) {
+        document.getElementById('status').innerText = message;
+    }
+
+    async function postJson(url, payload) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        return response.json();
+    }
+
+    async function importDaily() {
+        const data = await postJson('/api/import/twse/daily', {tradeDate: tradeDateInput.value});
+        setStatus('匯入完成，筆數：' + data.data);
+    }
+
+    async function calculateIndicator() {
+        const data = await postJson('/api/indicator/calculate', {tradeDate: tradeDateInput.value});
+        setStatus('指標計算完成，筆數：' + data.data);
+    }
+
+    async function scanSignal() {
+        const response = await fetch('/api/strategy/v8/scan?date=' + tradeDateInput.value, {method: 'POST'});
+        const data = await response.json();
+        setStatus('掃描完成，訊號數：' + data.data);
+    }
+
+    async function loadSignals() {
+        const response = await fetch('/api/strategy/v8/signals?date=' + tradeDateInput.value);
+        const data = await response.json();
+        renderTable(data.data || []);
+        setStatus('查詢完成，訊號數：' + ((data.data || []).length));
+    }
+
+    function renderTable(rows) {
+        const tbody = document.getElementById('resultBody');
+        tbody.innerHTML = '';
+        rows.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.stockCode ?? ''}</td>
+                <td>${item.stockName ?? ''}</td>
+                <td>${item.tradeDate ?? ''}</td>
+                <td>${fmt(item.closePrice)}</td>
+                <td>${fmt(item.pctChange)}</td>
+                <td>${fmt(item.volume)}</td>
+                <td>${fmt(item.ma5)}</td>
+                <td>${fmt(item.ma10)}</td>
+                <td>${fmt(item.ma20)}</td>
+                <td>${booleanText(item.squeezeBurst)}</td>
+                <td>${booleanText(item.multiMaBreak)}</td>
+                <td>${booleanText(item.trendBreak)}</td>
+                <td class="left">${item.remark ?? ''}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
     function fmt(value) {
-        if (value === null || value === undefined || value === "") {
-            return "-";
+        if (value === null || value === undefined) {
+            return '';
         }
         return value;
     }
 
-    function fmtNumber(value) {
-        if (value === null || value === undefined || value === "") {
-            return "-";
-        }
-        return Number(value).toLocaleString();
+    function booleanText(value) {
+        return value ? '是' : '否';
     }
-
-    function fmtDecimal(value) {
-        if (value === null || value === undefined || value === "") {
-            return "-";
-        }
-        return Number(value).toFixed(2);
-    }
-
-    async function loadData() {
-        const status = document.getElementById("status");
-        const tbody = document.getElementById("tableBody");
-
-        status.innerText = "資料載入中...";
-        tbody.innerHTML = "";
-
-        try {
-            const response = await fetch('/api/stocks/top');
-            const data = await response.json();
-
-            if (!Array.isArray(data) || data.length === 0) {
-                status.innerText = "目前沒有可顯示資料，請先執行同步。";
-                return;
-            }
-
-            data.forEach(item => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${fmt(item.stockCode)}</td>
-                    <td>${fmt(item.stockName)}</td>
-                    <td>${fmt(item.tradeDate)}</td>
-                    <td class="number">${fmtDecimal(item.openPrice)}</td>
-                    <td class="number">${fmtDecimal(item.highPrice)}</td>
-                    <td class="number">${fmtDecimal(item.lowPrice)}</td>
-                    <td class="number">${fmtDecimal(item.closePrice)}</td>
-                    <td class="number">${fmtNumber(item.volume)}</td>
-                    <td class="number">${fmtNumber(item.turnoverAmount)}</td>
-                    <td class="number">${fmtDecimal(item.ma5)}</td>
-                    <td class="number">${fmtDecimal(item.ma20)}</td>
-                    <td class="number">${fmtDecimal(item.ma60)}</td>
-                    <td class="number">${fmtDecimal(item.bestEntryPrice)}</td>
-                    <td class="number">${fmtDecimal(item.takeProfitPrice)}</td>
-                    <td class="number">${fmtDecimal(item.stopLossPrice)}</td>
-                    <td class="number">${fmtNumber(item.foreignNetBuy)}</td>
-                    <td class="number">${fmtNumber(item.trustNetBuy)}</td>
-                    <td class="number">${fmtNumber(item.dealerNetBuy)}</td>
-                    <td class="number">${fmtDecimal(item.peRatio)}</td>
-                    <td class="number">${fmtDecimal(item.eps)}</td>
-                    <td class="number score-high">${fmtDecimal(item.predictionScore)}</td>
-                    <td class="number">${fmtDecimal(item.predictionProbability)}</td>
-                    <td>${fmt(item.buySignalDate)}</td>
-                    <td class="trigger">${fmt(item.triggerConditions)}</td>
-                    <td class="number">${fmt(item.backtestWinRate)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            status.innerText = `載入完成，共 ${data.length} 筆。`;
-        } catch (e) {
-            console.error(e);
-            status.innerText = "資料載入失敗：" + e;
-        }
-    }
-
-    async function syncData() {
-        const status = document.getElementById("status");
-        status.innerText = "同步中...";
-
-        try {
-            const response = await fetch('/admin/twse/sync');
-            const result = await response.json();
-            console.log(result);
-
-            if (result.success === false) {
-                status.innerText = "同步失敗：" + (result.message || "未知錯誤");
-                return;
-            }
-
-            status.innerText = "同步完成，重新載入資料中...";
-            await loadData();
-        } catch (e) {
-            console.error(e);
-            status.innerText = "同步失敗：" + e;
-        }
-    }
-
-    loadData();
 </script>
 </body>
 </html>
